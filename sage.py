@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.multiprocessing as mp
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from torch.utils.data import DataLoader
 import dgl.function as fn
 import dgl.nn.pytorch as dglnn
@@ -128,7 +128,10 @@ def compute_acc(pred, labels):
     Compute the accuracy of prediction given the labels.
     """
     r2 = r2_score(labels.cpu().detach().numpy(), pred.cpu().detach().numpy())
-    return r2
+    mae = mean_absolute_error(labels.cpu().detach().numpy(), pred.cpu().detach().numpy())
+    mse = mean_squared_error(labels.cpu().detach().numpy(), pred.cpu().detach().numpy())
+
+    return {'r2' : r2, 'mae' : mae, 'mse' : mse}
 
 def evaluate(model, g, inputs, labels, val_nid, batch_size, device):
     """
@@ -207,8 +210,8 @@ def run(args, device, data):
             if step % args.log_every == 0:
                 acc = compute_acc(batch_pred, batch_labels)
                 gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
-                print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MiB'.format(
-                    epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
+                print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train mae {:.4f} | Train r2 {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MiB'.format(
+                    epoch, step, loss.item(), acc['mae'], acc['r2'], np.mean(iter_tput[3:]), gpu_mem_alloc))
             tic_step = time.time()
 
         toc = time.time()
@@ -217,9 +220,9 @@ def run(args, device, data):
             avg += toc - tic
         if epoch % args.eval_every == 0 and epoch != 0:
             eval_acc = evaluate(model, val_g, val_g.ndata['features'], val_g.ndata['labels'], val_nid, args.batch_size, device)
-            print('Eval Acc {:.4f}'.format(eval_acc))
+            print('Eval Acc {}'.format(eval_acc))
             test_acc = evaluate(model, test_g, test_g.ndata['features'], test_g.ndata['labels'], test_nid, args.batch_size, device)
-            print('Test Acc: {:.4f}'.format(test_acc))
+            print('Test Acc: {}'.format(test_acc))
 
     print('Avg epoch time: {}'.format(avg / (epoch - 4)))
 
