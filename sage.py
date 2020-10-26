@@ -44,7 +44,7 @@ class SAGEDense(nn.Module):
         if n_hidden is None:
             n_hidden = out_feats
 
-        self.d1 = DenseUnit(in_feats, n_hidden, activation=activation, dropout=dropout, n=n)
+        self.d1 = DenseUnit(in_feats, n_hidden, activation=activation, dropout=dropout, n=False)
         self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=activation)
         self.d2 = DenseUnit(n_hidden, out_feats, activation=activation, dropout=dropout, n=n)
 
@@ -67,9 +67,9 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(SAGEDense(in_feats, n_hidden, dropout=dropout, n=False, activation=F.relu))
+        self.layers.append(SAGEDense(in_feats, n_hidden, dropout=dropout, n=True, activation=F.relu))
         for i in range(1, n_layers - 1):
-            self.layers.append(SAGEDense(n_hidden, n_hidden, dropout=dropout, n=False, activation=F.relu))
+            self.layers.append(SAGEDense(n_hidden, n_hidden, dropout=dropout, n=True, activation=F.relu))
         self.layers.append(SAGEDense(n_hidden, n_classes, dropout=dropout, n=False, activation=F.relu))
 
     def forward(self, blocks, x):
