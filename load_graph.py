@@ -64,7 +64,8 @@ def load_mol_data(dsize):
     graph = dgl.DGLGraph(networkx_graph)
 
     features = th.FloatTensor(data['features'])
-    labels = th.FloatTensor(MinMaxScaler().fit_transform(data['labels']))
+    # labels = th.FloatTensor(MinMaxScaler().fit_transform(data['labels']))
+    labels = th.FloatTensor(data['labels'])
 
     graph.ndata['features'] = features
     graph.ndata['labels'] = labels
