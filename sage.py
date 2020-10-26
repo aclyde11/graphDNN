@@ -170,8 +170,8 @@ def run(args, device, data):
     # Unpack data
     in_feats, n_classes, train_g, val_g, test_g = data
     train_nid = th.nonzero(train_g.ndata['train_mask'], as_tuple=True)[0]
-    val_nid = th.nonzero(val_g.ndata['val_mask'], as_tuple=True)[0]
-    test_nid = th.nonzero(~(test_g.ndata['train_mask'] | test_g.ndata['val_mask']), as_tuple=True)[0]
+    val_nid = th.nonzero(val_g.ndata['test_mask'], as_tuple=True)[0]
+    test_nid = th.nonzero(test_g.ndata['test_mask'], as_tuple=True)[0]
 
     # Create PyTorch DataLoader for constructing blocks
     sampler = dgl.dataloading.MultiLayerFullNeighborSampler(args.num_layers)
@@ -260,7 +260,7 @@ if __name__ == '__main__':
         device = th.device('cpu')
 
 
-    g = load_mol_data(0.8)
+    g = load_mol_data(0.5)
 
     in_feats = g.ndata['features'].shape[1]
 
