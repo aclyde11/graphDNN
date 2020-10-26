@@ -157,8 +157,7 @@ def run(args, device, data):
     test_nid = th.nonzero(~(test_g.ndata['train_mask'] | test_g.ndata['val_mask']), as_tuple=True)[0]
 
     # Create PyTorch DataLoader for constructing blocks
-    sampler = dgl.dataloading.MultiLayerNeighborSampler(
-        [int(fanout) for fanout in args.fan_out.split(',')])
+    sampler = dgl.dataloading.MultiLayerFullNeighborSampler(args.num_layers)
     dataloader = dgl.dataloading.NodeDataLoader(
         train_g,
         train_nid,
