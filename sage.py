@@ -71,9 +71,8 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.d1 = DenseUnit(in_feats, 64, n=True, activation=F.elu, dropout=dropout)
-        self.d2 = DenseUnit(64, 64, n=True, activation=F.elu, dropout=dropout)
-        self.d3 = DenseUnit(64, 64, n=True, activation=F.elu, dropout=dropout)
+        self.d1 = DenseUnit(in_feats, 64, n=True, activation=F.relu, dropout=dropout)
+        self.d2 = DenseUnit(64, 64, n=True, activation=F.relu, dropout=dropout)
 
         self.layers.append(SAGEDense(64, n_hidden, n_hidden=n_hidden, dropout=dropout, n=True, activation=F.relu))
         for i in range(1, n_layers - 1):
@@ -81,7 +80,7 @@ class SAGE(nn.Module):
         self.layers.append(SAGEDense(n_hidden, n_classes, n_hidden=n_hidden, dropout=0, n=False, activation=F.relu))
 
     def forward(self, blocks, x):
-        h = self.d3(self.d2(self.d1(x)))
+        h = self.d2(self.d1(x))
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
             h = layer(block, h)
 
@@ -96,7 +95,7 @@ class SAGE(nn.Module):
         The inference code is written in a fashion that it could handle any number of nodes and
         layers.
         """
-        h = self.d3(self.d2(self.d1(x.to(device))))
+        h = self.d2(self.d1(x.to(device)))
         x = h
         for l, layer in enumerate(self.layers):
             y = th.zeros(g.number_of_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes)
