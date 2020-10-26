@@ -96,6 +96,7 @@ optimizer = th.optim.Adam(net.parameters(), lr=5e-4)
 dur = []
 t0 = time.time()
 
+tmask = g.ndata['train_mask']
 g = g.to(DEVICE)
 g.ndata['features'] = g.ndata['features'].to(DEVICE)
 g.ndata['labels'] = g.ndata['labels'].to(DEVICE)
@@ -118,7 +119,7 @@ for epoch in range(10000):
         logits = net(g, g.ndata['features'])
         logp = (logits)
 
-        rid = np.random.randint(0, len(np.where(g.ndata['train_mask'])[0]), 128)
+        rid = th.LongTensor(np.random.randint(0, len(np.where(tmask)[0]), 128)).to(DEVICE)
 
         loss = F.mse_loss(logp[g.ndata['train_mask']][rid], g.ndata['labels'][g.ndata['train_mask']][rid])
 
