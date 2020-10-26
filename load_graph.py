@@ -41,6 +41,24 @@ def load_mol_data(dsize):
         data = pickle.load(f)
 
     networkx_graph = data['g']
+
+    heirs = []
+    train_mask = []
+    test_mask = []
+    for node in networkx_graph.nodes(data=True):
+        if 'hierarchy' in node[1]:
+            heirs.append(node[1]['hierarchy'])
+        else:
+            heirs.append(5)
+        if heirs[-1] <= 3:
+            train_mask.append(True)
+            test_mask.append(False)
+        else:
+            train_mask.append(False)
+            test_mask.append(True)
+
+    print(f"Train: {sum(train_mask)}, Test: {sum(test_mask)}")
+
     networkx_graph.add_edges_from(zip(networkx_graph.nodes(), networkx_graph.nodes())) # add self edges
 
     graph = dgl.DGLGraph(networkx_graph)
@@ -51,14 +69,14 @@ def load_mol_data(dsize):
     graph.ndata['features'] = features
     graph.ndata['labels'] = labels
 
-    train_mask = [random.random() < dsize for _ in range(features.shape[0])]
-    train_mask = np.array(train_mask, dtype=np.bool).flatten()
-    val_mask = [random.random() < 0.5 for _ in range(features.shape[0])]
-    test_mask = ~train_mask
+    # train_mask = [random.random() < dsize for _ in range(features.shape[0])]
+    # train_mask = np.array(train_mask, dtype=np.bool).flatten()
+    # val_mask = [random.random() < 0.5 for _ in range(features.shape[0])]
+    # test_mask = ~train_mask
 
     graph.ndata['train_mask'] = th.BoolTensor(train_mask)
     graph.ndata['test_mask'] = th.BoolTensor(test_mask)
-    graph.ndata['val_mask'] = th.BoolTensor(val_mask)
+    graph.ndata['val_mask'] = th.BoolTensor(test_mask)
 
     # sampler = dgl.dataloading.MultiLayerFullNeighborSampler(2)
     # dataloader = dgl.dataloading.NodeDataLoader(

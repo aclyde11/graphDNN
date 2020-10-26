@@ -1,3 +1,5 @@
+from sage import SAGEDense
+
 DEVICE = 'cpu'
 
 import pickle
@@ -23,6 +25,9 @@ from tqdm import tqdm
 
 from load_graph import load_mol_data
 
+
+
+
 def trainable_count(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
@@ -30,33 +35,16 @@ def trainable_count(model):
 class GCN(nn.Module):
     def __init__(self, in_dim, hidden_dim, out_dim, dropout=0.2):
         super(GCN, self).__init__()
-        self.d_layer1 = nn.Linear(in_dim, hidden_dim)
-        self.n1 = nn.BatchNorm1d(hidden_dim)
-        self.g_layer1 = dgl.nn.SAGEConv(hidden_dim, hidden_dim, aggregator_type='mean', activation=F.relu)
-        self.d_layer2 = nn.Linear(hidden_dim, hidden_dim)
-        self.n2 = nn.BatchNorm1d(hidden_dim)
-        self.g_layer2 = dgl.nn.SAGEConv(hidden_dim, hidden_dim, aggregator_type='mean', activation=F.relu)
-        self.d_layer3 = nn.Linear(hidden_dim, out_dim)
-        self.dropout = nn.Dropout(dropout)
+        self.l1 = SAGEDense(in_dim, hidden_dim, hidden_dim, activation=F.relu, n=True, dropout=dropout)
+        self.l2 = SAGEDense(hidden_dim, hidden_dim, hidden_dim, activation=F.relu, n=True, dropout=dropout)
+        self.l3 = SAGEDense(hidden_dim, out_dim, hidden_dim, activation=F.relu, n=True, dropout=dropout)
 
 
 
     def forward(self, g, h):
-        h = self.d_layer1(h)
-        h = self.n1(h)
-        h = F.relu(h)
-        h = self.dropout(h)
-
-        h = self.g_layer1(g,h)
-
-        h = self.d_layer2(h)
-        h = self.n2(h)
-        h = F.relu(h)
-        h = self.dropout(h)
-
-        h = self.g_layer2(g, h)
-
-        h = F.relu(self.d_layer3(h))
+        h = self.l1(g, h)
+        h = self.l2(g, h)
+        h = self.l3(g, h)
 
         return h
 
