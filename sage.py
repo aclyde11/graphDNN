@@ -71,13 +71,17 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(SAGEDense(in_feats, n_hidden, n_hidden=n_hidden, dropout=dropout, n=True, activation=F.relu))
+        self.d1 = DenseUnit(in_feats, n_hidden, n=True, activation=F.elu, dropout=dropout)
+        self.d2 = DenseUnit(n_hidden, n_hidden, n=True, activation=F.elu, dropout=dropout)
+        self.d3 = DenseUnit(n_hidden, n_hidden, n=True, activation=F.elu, dropout=dropout)
+
+        self.layers.append(SAGEDense(n_hidden, n_hidden, n_hidden=n_hidden, dropout=dropout, n=True, activation=F.relu))
         for i in range(1, n_layers - 1):
             self.layers.append(SAGEDense(n_hidden, n_hidden, dropout=dropout, n=True, activation=F.relu))
         self.layers.append(SAGEDense(n_hidden, n_classes, n_hidden=n_hidden, dropout=0, n=False, activation=F.relu))
 
     def forward(self, blocks, x):
-        h = x
+        h = self.d3(self.d2(self.d1(x)))
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
             # srcnodes = block.srcnodes['_U'].data[dgl.NID].numpy()
             # dstnodes = block.dstnodes['_U'].data[dgl.NID].numpy()
@@ -109,6 +113,8 @@ class SAGE(nn.Module):
         # Therefore, we compute the representation of all nodes layer by layer.  The nodes
         # on each layer are of course splitted in batches.
         # TODO: can we standardize this?
+        x = self.d3(self.d2(self.d1(x)))
+
         for l, layer in enumerate(self.layers):
             y = th.zeros(g.number_of_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes)
 
