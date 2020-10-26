@@ -18,23 +18,40 @@ import traceback
 
 from load_graph import load_reddit, inductive_split, load_mol_data
 
+class DenseUnit(nn.Module):
+    def __init__(self, in_feats, out_feats,  activation=F.relu, dropout=0.2, n=True):
+        super().__init__()
+        self.activation = activation
+        self.dropout = nn.Dropout(dropout)
+        self.n = nn.BatchNorm1d(out_feats)
+        self.d1 = nn.Linear(in_feats, out_feats)
+        self.use_n = n
+
+    def forward(self, x):
+        x = self.d1(x)
+        if self.use_n:
+            x = self.n(x)
+        x = self.dropout(x)
+        x = self.activation(x)
+        return x
+
+
+
 class SAGEDense(nn.Module):
-    def __init__(self, in_feats, out_feats, n_hidden=None):
+    def __init__(self, in_feats, out_feats, n_hidden=None, activation=F.elu, dropout=0.2, n=False):
         super().__init__()
         if n_hidden is None:
             n_hidden = out_feats
 
-        self.d1 = nn.Linear(in_feats, n_hidden)
-        self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=F.relu)
-        self.d2 = nn.Linear(n_hidden, out_feats)
-
+        self.d1 = DenseUnit(in_feats, n_hidden, activation=activation, dropout=dropout, n=n)
+        self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=activation, feat_drop=dropout)
+        self.d2 = DenseUnit(n_hidden, out_feats, activation=activation, dropout=dropout, n=n)
 
     def forward(self, blocks, x):
-        x = F.relu(self.d1(x))
+        x = self.d1(x)
         x = self.l1(blocks, x)
-        return F.relu(self.d2(x))
-
-
+        x = self.d2(x)
+        return x
 
 class SAGE(nn.Module):
     def __init__(self,
@@ -49,19 +66,15 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(SAGEDense(in_feats, n_hidden))
+        self.layers.append(SAGEDense(in_feats, n_hidden, dropout=dropout, n=True, activation=F.elu))
         for i in range(1, n_layers - 1):
-            self.layers.append(SAGEDense(n_hidden, n_hidden))
-        self.layers.append(SAGEDense(n_hidden, n_classes))
-        self.dropout = nn.Dropout(dropout)
-        self.activation = activation
+            self.layers.append(SAGEDense(n_hidden, n_hidden, dropout=dropout, n=True, activation=F.elu))
+        self.layers.append(SAGEDense(n_hidden, n_classes, dropout=dropout, n=False, activation=F.relu))
 
     def forward(self, blocks, x):
         h = x
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
             h = layer(block, h)
-            if l != len(self.layers) - 1:
-                h = self.dropout(h)
         return h
 
     def inference(self, g, x, batch_size, device):
@@ -97,8 +110,6 @@ class SAGE(nn.Module):
                 block = block.int().to(device)
                 h = x[input_nodes].to(device)
                 h = layer(block, h)
-                if l != len(self.layers) - 1:
-                    h = self.dropout(h)
 
                 y[output_nodes] = h.cpu()
 
@@ -218,8 +229,8 @@ if __name__ == '__main__':
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=5)
     argparser.add_argument('--lr', type=float, default=0.003)
-    argparser.add_argument('--dropout', type=float, default=0.5)
-    argparser.add_argument('--num-workers', type=int, default=4,
+    argparser.add_argument('--dropout', type=float, default=0.2)
+    argparser.add_argument('--num-workers', type=int, default=0,
         help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--inductive', action='store_true',
         help="Inductive learning setting")
