@@ -5,7 +5,7 @@ import dgl
 import numpy as np
 import torch as th
 from dgl.data import citation_graph as citegrh
-
+from sklearn.preprocessing import MinMaxScaler
 def load_reddit():
     from dgl.data import RedditDataset
 
@@ -46,7 +46,7 @@ def load_mol_data(dsize):
     graph = dgl.DGLGraph(networkx_graph)
 
     features = th.FloatTensor(data['features'])
-    labels = th.FloatTensor(data['labels'])[:, [0]]
+    labels = th.FloatTensor(MinMaxScaler().fit_transform(data['labels']))
 
     graph.ndata['features'] = features
     graph.ndata['labels'] = labels

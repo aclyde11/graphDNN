@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.multiprocessing as mp
+from sklearn.metrics import r2_score
 from torch.utils.data import DataLoader
 import dgl.function as fn
 import dgl.nn.pytorch as dglnn
@@ -120,7 +121,8 @@ def compute_acc(pred, labels):
     """
     Compute the accuracy of prediction given the labels.
     """
-    return F.mse_loss(pred, labels)
+    r2 = r2_score(labels.cpu().detach().numpy(), pred.cpu().detach().numpy())
+    return r2
 
 def evaluate(model, g, inputs, labels, val_nid, batch_size, device):
     """
@@ -201,7 +203,7 @@ def run(args, device, data):
                 acc = compute_acc(batch_pred, batch_labels)
                 gpu_mem_alloc = th.cuda.max_memory_allocated() / 1000000 if th.cuda.is_available() else 0
                 print('Epoch {:05d} | Step {:05d} | Loss {:.4f} | Train Acc {:.4f} | Speed (samples/sec) {:.4f} | GPU {:.1f} MiB'.format(
-                    epoch, step, loss.item(), acc.item(), np.mean(iter_tput[3:]), gpu_mem_alloc))
+                    epoch, step, loss.item(), acc, np.mean(iter_tput[3:]), gpu_mem_alloc))
             tic_step = time.time()
 
         toc = time.time()
