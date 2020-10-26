@@ -96,7 +96,7 @@ class SAGE(nn.Module):
         The inference code is written in a fashion that it could handle any number of nodes and
         layers.
         """
-        h = self.d3(self.d2(self.d1(x)))
+        h = self.d3(self.d2(self.d1(x.to(device))))
         x = h
         for l, layer in enumerate(self.layers):
             y = th.zeros(g.number_of_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes)
