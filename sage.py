@@ -67,10 +67,10 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(SAGEDense(in_feats, n_hidden, dropout=dropout, n=True, activation=F.relu))
+        self.layers.append(SAGEDense(in_feats, n_hidden, n_hidden=n_hidden, dropout=dropout, n=True, activation=F.relu))
         for i in range(1, n_layers - 1):
             self.layers.append(SAGEDense(n_hidden, n_hidden, dropout=dropout, n=True, activation=F.relu))
-        self.layers.append(SAGEDense(n_hidden, n_classes, dropout=0, n=False, activation=F.relu))
+        self.layers.append(SAGEDense(n_hidden, n_classes, n_hidden=n_hidden, dropout=0, n=False, activation=F.relu))
 
     def forward(self, blocks, x):
         h = x
