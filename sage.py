@@ -44,7 +44,7 @@ class SAGEDense(nn.Module):
             n_hidden = out_feats
 
         self.d1 = DenseUnit(in_feats, n_hidden, activation=activation, dropout=dropout, n=n)
-        self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=activation, feat_drop=dropout)
+        self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=activation
         self.d2 = DenseUnit(n_hidden, out_feats, activation=activation, dropout=dropout, n=n)
 
     def forward(self, blocks, x):
