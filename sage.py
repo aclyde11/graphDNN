@@ -18,6 +18,7 @@ import traceback
 
 from load_graph import load_reddit, inductive_split, load_mol_data
 
+
 class SAGE(nn.Module):
     def __init__(self,
                  in_feats,
@@ -34,22 +35,17 @@ class SAGE(nn.Module):
         self.layers.append(dglnn.SAGEConv(in_feats, n_hidden, 'mean'))
         for i in range(1, n_layers - 1):
             self.layers.append(dglnn.SAGEConv(n_hidden, n_hidden, 'mean'))
-        self.layers.append(dglnn.SAGEConv(n_hidden, n_hidden, 'mean'))
-        self.layers.append(nn.Linear(n_hidden, n_classes))
+        self.layers.append(dglnn.SAGEConv(n_hidden, n_classes, 'mean'))
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
 
     def forward(self, blocks, x):
         h = x
-        # print(h.shape)
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
+            h = layer(block, h)
             if l != len(self.layers) - 1:
-                h = layer(block, h)
                 h = self.activation(h)
                 h = self.dropout(h)
-            else:
-                h = layer(h)
-                # h = self.activation(h)
         return h
 
     def inference(self, g, x, batch_size, device):
@@ -57,6 +53,7 @@ class SAGE(nn.Module):
         Inference with the GraphSAGE model on full neighbors (i.e. without neighbor sampling).
         g : the entire graph.
         x : the input of entire node set.
+
         The inference code is written in a fashion that it could handle any number of nodes and
         layers.
         """
@@ -144,7 +141,7 @@ def run(args, device, data):
         num_workers=args.num_workers)
 
     # Define model and optimizer
-    model = SAGE(in_feats, args.num_hidden, 1, args.num_layers, F.elu, args.dropout)
+    model = SAGE(in_feats, args.num_hidden, n_classes, args.num_layers, F.relu, args.dropout)
     model = model.to(device)
     loss_fcn = nn.MSELoss()
     loss_fcn = loss_fcn.to(device)
@@ -165,10 +162,9 @@ def run(args, device, data):
             blocks = [block.int().to(device) for block in blocks]
             batch_inputs = blocks[0].srcdata['features']
             batch_labels = blocks[-1].dstdata['labels']
+
             # Compute loss and prediction
             batch_pred = model(blocks, batch_inputs)
-            # print(f"batch_inputs: {batch_inputs.shape}, batch_labels: {batch_labels.shape}, batch_pred: {batch_pred.shape}")
-
             loss = loss_fcn(batch_pred, batch_labels)
             optimizer.zero_grad()
             loss.backward()
@@ -187,11 +183,10 @@ def run(args, device, data):
         if epoch >= 5:
             avg += toc - tic
         if epoch % args.eval_every == 0 and epoch != 0:
-            pass
-            # eval_acc = evaluate(model, val_g, val_g.ndata['features'], val_g.ndata['labels'], val_nid, args.batch_size, device)
-            # print('Eval Acc {:.4f}'.format(eval_acc))
-            # test_acc = evaluate(model, test_g, test_g.ndata['features'], test_g.ndata['labels'], test_nid, args.batch_size, device)
-            # print('Test Acc: {:.4f}'.format(test_acc))
+            eval_acc = evaluate(model, val_g, val_g.ndata['features'], val_g.ndata['labels'], val_nid, args.batch_size, device)
+            print('Eval Acc {:.4f}'.format(eval_acc))
+            test_acc = evaluate(model, test_g, test_g.ndata['features'], test_g.ndata['labels'], test_nid, args.batch_size, device)
+            print('Test Acc: {:.4f}'.format(test_acc))
 
     print('Avg epoch time: {}'.format(avg / (epoch - 4)))
 
@@ -199,17 +194,17 @@ if __name__ == '__main__':
     argparser = argparse.ArgumentParser("multi-gpu training")
     argparser.add_argument('--gpu', type=int, default=-1,
         help="GPU device ID. Use -1 for CPU training")
-    argparser.add_argument('--dataset', type=str, default='ogb-product')
-    argparser.add_argument('--num-epochs', type=int, default=200)
-    argparser.add_argument('--num-hidden', type=int, default=64)
+    argparser.add_argument('--dataset', type=str, default='reddit')
+    argparser.add_argument('--num-epochs', type=int, default=20)
+    argparser.add_argument('--num-hidden', type=int, default=24)
     argparser.add_argument('--num-layers', type=int, default=2)
     argparser.add_argument('--fan-out', type=str, default='10,25')
-    argparser.add_argument('--batch-size', type=int, default=1000)
+    argparser.add_argument('--batch-size', type=int, default=64)
     argparser.add_argument('--log-every', type=int, default=20)
     argparser.add_argument('--eval-every', type=int, default=5)
-    argparser.add_argument('--lr', type=float, default=1e-3)
-    argparser.add_argument('--dropout', type=float, default=0.25)
-    argparser.add_argument('--num-workers', type=int, default=0,
+    argparser.add_argument('--lr', type=float, default=0.003)
+    argparser.add_argument('--dropout', type=float, default=0.5)
+    argparser.add_argument('--num-workers', type=int, default=4,
         help="Number of sampling processes. Use 0 for no extra process.")
     argparser.add_argument('--inductive', action='store_true',
         help="Inductive learning setting")
@@ -220,12 +215,8 @@ if __name__ == '__main__':
     else:
         device = th.device('cpu')
 
-    if args.dataset == 'reddit':
-        g, n_classes = load_reddit()
-    elif args.dataset == 'ogb-product':
-        g, n_classes = load_mol_data(0.7)
-    else:
-        raise Exception('unknown dataset')
+
+    g = load_mol_data(0.8)
 
     in_feats = g.ndata['features'].shape[1]
 
@@ -240,6 +231,6 @@ if __name__ == '__main__':
     val_g.create_formats_()
     test_g.create_formats_()
     # Pack data
-    data = in_feats, n_classes, train_g, val_g, test_g
+    data = in_feats, 1, train_g, val_g, test_g
 
     run(args, device, data)

@@ -53,11 +53,12 @@ def load_mol_data(dsize):
 
     train_mask = [random.random() < dsize for _ in range(features.shape[0])]
     train_mask = np.array(train_mask, dtype=np.bool).flatten()
-    # test_mask = [random.random() < 0.3 for _ in range(features.shape[0])]
+    val_mask = [random.random() < 0.5 for _ in range(features.shape[0])]
     test_mask = ~train_mask
 
     graph.ndata['train_mask'] = th.BoolTensor(train_mask)
     graph.ndata['test_mask'] = th.BoolTensor(test_mask)
+    graph.ndata['val_mask'] = th.BoolTensor(val_mask)
 
     # sampler = dgl.dataloading.MultiLayerFullNeighborSampler(2)
     # dataloader = dgl.dataloading.NodeDataLoader(
