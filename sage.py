@@ -18,6 +18,23 @@ import traceback
 
 from load_graph import load_reddit, inductive_split, load_mol_data
 
+class SAGEDense(nn.Module):
+    def __init__(self, in_feats, out_feats, n_hidden=None):
+        super().__init__()
+        if n_hidden is None:
+            n_hidden = out_feats
+
+        self.d1 = nn.Linear(in_feats, n_hidden)
+        self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=F.relu)
+        self.d2 = nn.Linear(n_hidden, out_feats)
+
+
+    def forward(self, blocks, x):
+        x = F.relu(self.d1(x))
+        x = self.l1(blocks, x)
+        return F.relu(self.d2(x))
+
+
 
 class SAGE(nn.Module):
     def __init__(self,
@@ -32,10 +49,10 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.layers.append(dglnn.SAGEConv(in_feats, n_hidden, 'mean'))
+        self.layers.append(SAGEDense(in_feats, n_hidden))
         for i in range(1, n_layers - 1):
-            self.layers.append(dglnn.SAGEConv(n_hidden, n_hidden, 'mean'))
-        self.layers.append(dglnn.SAGEConv(n_hidden, n_classes, 'mean'))
+            self.layers.append(SAGEDense(n_hidden, n_hidden))
+        self.layers.append(SAGEDense(n_hidden, n_classes))
         self.dropout = nn.Dropout(dropout)
         self.activation = activation
 
@@ -44,7 +61,6 @@ class SAGE(nn.Module):
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
             h = layer(block, h)
             if l != len(self.layers) - 1:
-                h = self.activation(h)
                 h = self.dropout(h)
         return h
 
@@ -82,7 +98,6 @@ class SAGE(nn.Module):
                 h = x[input_nodes].to(device)
                 h = layer(block, h)
                 if l != len(self.layers) - 1:
-                    h = self.activation(h)
                     h = self.dropout(h)
 
                 y[output_nodes] = h.cpu()
