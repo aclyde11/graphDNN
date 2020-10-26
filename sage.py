@@ -45,14 +45,17 @@ class SAGEDense(nn.Module):
             n_hidden = out_feats
 
         self.d1 = DenseUnit(in_feats, n_hidden, activation=activation, dropout=dropout, n=False)
-        self.l1 = dglnn.SAGEConv(n_hidden, n_hidden, 'mean', activation=activation)
+        self.gc1 = dglnn.GraphConv
+
+        self.l1 = dglnn.SAGEConv(in_feats, n_hidden, 'mean', activation=activation)
         self.d2 = DenseUnit(n_hidden, out_feats, activation=activation, dropout=dropout, n=n)
 
-    def forward(self, blocks, x):
-        x = self.d1(x)
-        x = self.l1(blocks, x)
-        x = self.d2(x)
-        return x
+    def forward(self, block, x):
+        x2 = self.l1(block, x)
+        x1 = self.d1(x[:x2.shape[0]])
+
+        x3 = self.d2(x2 + x1)
+        return x3
 
 class SAGE(nn.Module):
     def __init__(self,
@@ -75,7 +78,20 @@ class SAGE(nn.Module):
     def forward(self, blocks, x):
         h = x
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
+            # srcnodes = block.srcnodes['_U'].data[dgl.NID].numpy()
+            # dstnodes = block.dstnodes['_U'].data[dgl.NID].numpy()
+            #
+            # nmap = {srcnodes[i] : i for i in range(srcnodes.shape[0])}
+            # dst_i = [nmap[i] for i in dstnodes]
+            # print(dst_i)
+            # exit()
+
+
+
+
+            # block.dstnodes['_U'].data['features'] = h
             h = layer(block, h)
+
         return h
 
     def inference(self, g, x, batch_size, device):
