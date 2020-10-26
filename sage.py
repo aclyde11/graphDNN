@@ -71,11 +71,11 @@ class SAGE(nn.Module):
         self.n_hidden = n_hidden
         self.n_classes = n_classes
         self.layers = nn.ModuleList()
-        self.d1 = DenseUnit(in_feats, n_hidden, n=True, activation=F.elu, dropout=dropout)
-        self.d2 = DenseUnit(n_hidden, n_hidden, n=True, activation=F.elu, dropout=dropout)
-        self.d3 = DenseUnit(n_hidden, n_hidden, n=True, activation=F.elu, dropout=dropout)
+        self.d1 = DenseUnit(in_feats, 64, n=True, activation=F.elu, dropout=dropout)
+        self.d2 = DenseUnit(64, 64, n=True, activation=F.elu, dropout=dropout)
+        self.d3 = DenseUnit(64, 64, n=True, activation=F.elu, dropout=dropout)
 
-        self.layers.append(SAGEDense(n_hidden, n_hidden, n_hidden=n_hidden, dropout=dropout, n=True, activation=F.relu))
+        self.layers.append(SAGEDense(64, n_hidden, n_hidden=n_hidden, dropout=dropout, n=True, activation=F.relu))
         for i in range(1, n_layers - 1):
             self.layers.append(SAGEDense(n_hidden, n_hidden, dropout=dropout, n=True, activation=F.relu))
         self.layers.append(SAGEDense(n_hidden, n_classes, n_hidden=n_hidden, dropout=0, n=False, activation=F.relu))
