@@ -83,18 +83,6 @@ class SAGE(nn.Module):
     def forward(self, blocks, x):
         h = self.d3(self.d2(self.d1(x)))
         for l, (layer, block) in enumerate(zip(self.layers, blocks)):
-            # srcnodes = block.srcnodes['_U'].data[dgl.NID].numpy()
-            # dstnodes = block.dstnodes['_U'].data[dgl.NID].numpy()
-            #
-            # nmap = {srcnodes[i] : i for i in range(srcnodes.shape[0])}
-            # dst_i = [nmap[i] for i in dstnodes]
-            # print(dst_i)
-            # exit()
-
-
-
-
-            # block.dstnodes['_U'].data['features'] = h
             h = layer(block, h)
 
         return h
@@ -108,13 +96,8 @@ class SAGE(nn.Module):
         The inference code is written in a fashion that it could handle any number of nodes and
         layers.
         """
-        # During inference with sampling, multi-layer blocks are very inefficient because
-        # lots of computations in the first few layers are repeated.
-        # Therefore, we compute the representation of all nodes layer by layer.  The nodes
-        # on each layer are of course splitted in batches.
-        # TODO: can we standardize this?
-        x = self.d3(self.d2(self.d1(x)))
-
+        h = self.d3(self.d2(self.d1(x)))
+        x = h
         for l, layer in enumerate(self.layers):
             y = th.zeros(g.number_of_nodes(), self.n_hidden if l != len(self.layers) - 1 else self.n_classes)
 
@@ -123,7 +106,7 @@ class SAGE(nn.Module):
                 g,
                 th.arange(g.number_of_nodes()),
                 sampler,
-                batch_size=args.batch_size,
+                batch_size=batch_size,
                 shuffle=True,
                 drop_last=False,
                 num_workers=args.num_workers)
