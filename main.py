@@ -1,3 +1,5 @@
+DEVICE = 'cpu'
+
 import pickle
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
@@ -67,6 +69,8 @@ def evaluate(model, g, features, labels, mask, G):
         print(preds.shape, labels.shape)
         loss = F.mse_loss(preds, labels)
 
+        preds, labels = preds.detach().cpu().numpy(), labels.detach().cpu().numpy()
+
         print('r2', metrics.r2_score(labels, preds))
 
 
@@ -85,12 +89,19 @@ def evaluate(model, g, features, labels, mask, G):
 
 g = load_mol_data(0.8)
 
-net = GCN(1302, 32, 1)
+net = GCN(1302, 32, 1).to(DEVICE)
 
 print("trainbale:", trainable_count(net))
 optimizer = th.optim.Adam(net.parameters(), lr=5e-4)
 dur = []
 t0 = time.time()
+
+g = g.to(DEVICE)
+g.ndata['features'] = g.ndata['features'].to(DEVICE)
+g.ndata['labels'] = g.ndata['labels'].to(DEVICE)
+g.ndata['train_mask'] = g.ndata['train_mask'].to(DEVICE)
+g.ndata['test_mask'] = g.ndata['test_mask'].to(DEVICE)
+
 for epoch in range(10000):
     net.train()
 
