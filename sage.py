@@ -106,7 +106,7 @@ class SAGE(nn.Module):
                 g,
                 th.arange(g.number_of_nodes()),
                 sampler,
-                batch_size=batch_size,
+                batch_size=args.batch_size,
                 shuffle=True,
                 drop_last=False,
                 num_workers=args.num_workers)
