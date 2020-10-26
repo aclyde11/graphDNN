@@ -51,8 +51,9 @@ class SAGEDense(nn.Module):
         self.d2 = DenseUnit(n_hidden, out_feats, activation=activation, dropout=dropout, n=n)
 
     def forward(self, block, x):
+        x = self.d1(x)
         x2 = self.l1(block, x)
-        x1 = self.d1(x[:x2.shape[0]])
+        x1 = x[:x2.shape[0]]
 
         x3 = self.d2(x2 + x1)
         return x3
