@@ -36,7 +36,11 @@ def load_cora_data():
     return g, features, labels, train_mask, test_mask
 
 
-def load_mol_data(dsize):
+def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False, undirected=False, add_self_edges=False):
+    if dsize and split_level is None:
+        print("Error.")
+        exit()
+
     with open("test_data.pkl", 'rb') as f:
         data = pickle.load(f)
 
@@ -50,7 +54,7 @@ def load_mol_data(dsize):
             heirs.append(node[1]['hierarchy'])
         else:
             heirs.append(5)
-        if heirs[-1] <= 3:
+        if heirs[-1] <= (5 if split_level is None else split_level):
             train_mask.append(True)
             test_mask.append(False)
         else:
@@ -59,7 +63,12 @@ def load_mol_data(dsize):
 
     print(f"Train: {sum(train_mask)}, Test: {sum(test_mask)}")
 
-    networkx_graph.add_edges_from(zip(networkx_graph.nodes(), networkx_graph.nodes())) # add self edges
+    if add_self_edges:
+        networkx_graph.add_edges_from(zip(networkx_graph.nodes(), networkx_graph.nodes())) # add self edges
+    if reverse:
+        networkx_graph = networkx_graph.reverse().copy()
+    if undirected:
+        networkx_graph = networkx_graph.to_undirected().copy()
 
     graph = dgl.DGLGraph(networkx_graph)
 
@@ -70,10 +79,10 @@ def load_mol_data(dsize):
     graph.ndata['features'] = features
     graph.ndata['labels'] = labels
 
-    # train_mask = [random.random() < dsize for _ in range(features.shape[0])]
-    # train_mask = np.array(train_mask, dtype=np.bool).flatten()
-    # val_mask = [random.random() < 0.5 for _ in range(features.shape[0])]
-    # test_mask = ~train_mask
+    if dsize is not None:
+        train_mask = [random.random() < dsize for _ in range(features.shape[0])]
+        train_mask = np.array(train_mask, dtype=np.bool).flatten()
+        test_mask = ~train_mask
 
     graph.ndata['train_mask'] = th.BoolTensor(train_mask)
     graph.ndata['test_mask'] = th.BoolTensor(test_mask)
