@@ -37,7 +37,7 @@ def load_cora_data():
 
 
 def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False, undirected=False, add_self_edges=False):
-    if dsize and split_level is None:
+    if (dsize is None) and (split_level is None):
         print("Error.")
         exit()
 
@@ -73,8 +73,10 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
     graph = dgl.DGLGraph(networkx_graph)
 
     features = th.FloatTensor(data['features'])
-    # labels = th.FloatTensor(MinMaxScaler().fit_transform(data['labels']))
-    labels = th.FloatTensor(data['labels'])
+    if norm_values:
+        labels = th.FloatTensor(MinMaxScaler().fit_transform(data['labels']))
+    else:
+        labels = th.FloatTensor(data['labels'])
 
     graph.ndata['features'] = features
     graph.ndata['labels'] = labels
