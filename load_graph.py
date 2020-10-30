@@ -47,7 +47,7 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
     networkx_graph = data['g']
 
     if remove_molecule_nodes:
-        sb_nodes = list(filter(lambda x : x[1]['type'] == 'scaffold', networkx_graph.nodes(data=True)))
+        sb_nodes = list(map(lambda x : x[0], filter(lambda x : x[1]['type'] == 'scaffold', networkx_graph.nodes(data=True))))
         networkx_graph = networkx_graph.subgraph(sb_nodes).copy()
 
     heirs = []
