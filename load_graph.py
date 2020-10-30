@@ -36,7 +36,7 @@ def load_cora_data():
     return g, features, labels, train_mask, test_mask
 
 
-def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False, undirected=False, add_self_edges=False):
+def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False, undirected=False, add_self_edges=False, remove_molecule_nodes=False):
     if (dsize is None) and (split_level is None):
         print("Error.")
         exit()
@@ -45,6 +45,10 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
         data = pickle.load(f)
 
     networkx_graph = data['g']
+
+    if remove_molecule_nodes:
+        sb_nodes = list(filter(lambda x : x[1]['type'] == 'scaffold', networkx_graph.nodes(data=True)))
+        networkx_graph = networkx_graph.subgraph(sb_nodes).copy()
 
     heirs = []
     train_mask = []
@@ -61,7 +65,6 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
             train_mask.append(False)
             test_mask.append(True)
 
-    print(f"Train: {sum(train_mask)}, Test: {sum(test_mask)}")
 
     if add_self_edges:
         networkx_graph.add_edges_from(zip(networkx_graph.nodes(), networkx_graph.nodes())) # add self edges
@@ -89,6 +92,8 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
     graph.ndata['train_mask'] = th.BoolTensor(train_mask)
     graph.ndata['test_mask'] = th.BoolTensor(test_mask)
     graph.ndata['val_mask'] = th.BoolTensor(test_mask)
+
+    print(f"Train: {sum(train_mask)}, Test: {sum(test_mask)}")
 
     # sampler = dgl.dataloading.MultiLayerFullNeighborSampler(2)
     # dataloader = dgl.dataloading.NodeDataLoader(

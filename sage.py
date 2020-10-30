@@ -240,6 +240,7 @@ if __name__ == '__main__':
     argparser.add_argument('--dsize', type=float, default=0)
     argparser.add_argument('--reverse', action='store_true')
     argparser.add_argument('--self_edges', action='store_true')
+    argparser.add_argument('--scaffold_only', action='store_true')
     argparser.add_argument('--undirected', action='store_true')
     argparser.add_argument('--split_level', type=int, default=0)
     argparser.add_argument('--lr', type=float, default=0.003)
@@ -260,7 +261,7 @@ if __name__ == '__main__':
                       None if args.split_level == 0 else args.split_level,
                       reverse=args.reverse,
                       add_self_edges=args.self_edges,
-                      undirected=args.undirected)
+                      undirected=args.undirected, remove_molecule_nodes=args.scaffold_only)
 
     in_feats = g.ndata['features'].shape[1]
 
