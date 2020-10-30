@@ -95,7 +95,9 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
     graph.ndata['val_mask'] = th.BoolTensor(test_mask)
 
     if remove_molecule_nodes:
+        print("before_remove", graph.number_of_nodes())
         graph.remove_nodes(sb_nodes)
+        print("after_remove", graph.number_of_nodes())
 
 
     print(f"Train: {sum(train_mask)}, Test: {sum(test_mask)}")
