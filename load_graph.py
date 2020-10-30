@@ -47,8 +47,7 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
     networkx_graph = data['g']
 
     if remove_molecule_nodes:
-        sb_nodes = list(map(lambda x : x[0], filter(lambda x : x[1]['type'] == 'scaffold', networkx_graph.nodes(data=True))))
-        networkx_graph = networkx_graph.subgraph(sb_nodes).copy()
+        sb_nodes = list(map(lambda x : x[0], filter(lambda x : x[1]['type'] != 'scaffold', networkx_graph.nodes(data=True))))
 
     heirs = []
     train_mask = []
@@ -75,6 +74,8 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
 
     graph = dgl.DGLGraph(networkx_graph)
 
+
+
     features = th.FloatTensor(data['features'])
     if norm_values:
         labels = th.FloatTensor(MinMaxScaler().fit_transform(data['labels']))
@@ -92,6 +93,10 @@ def load_mol_data(dsize=None, split_level=None, norm_values=False, reverse=False
     graph.ndata['train_mask'] = th.BoolTensor(train_mask)
     graph.ndata['test_mask'] = th.BoolTensor(test_mask)
     graph.ndata['val_mask'] = th.BoolTensor(test_mask)
+
+    if remove_molecule_nodes:
+        graph.remove_nodes(sb_nodes)
+
 
     print(f"Train: {sum(train_mask)}, Test: {sum(test_mask)}")
 
